@@ -9,38 +9,271 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedVehiclesRouteImport } from './routes/_authenticated/vehicles'
+import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedOperationsRouteImport } from './routes/_authenticated/operations'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedMaintenanceRouteImport } from './routes/_authenticated/maintenance'
+import { Route as AuthenticatedIncidentsRouteImport } from './routes/_authenticated/incidents'
+import { Route as AuthenticatedDriversRouteImport } from './routes/_authenticated/drivers'
+import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
+import { Route as AuthenticatedDispatchRouteImport } from './routes/_authenticated/dispatch'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedVehiclesRoute = AuthenticatedVehiclesRouteImport.update({
+  id: '/vehicles',
+  path: '/vehicles',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOperationsRoute = AuthenticatedOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMaintenanceRoute =
+  AuthenticatedMaintenanceRouteImport.update({
+    id: '/maintenance',
+    path: '/maintenance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedIncidentsRoute = AuthenticatedIncidentsRouteImport.update({
+  id: '/incidents',
+  path: '/incidents',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDriversRoute = AuthenticatedDriversRouteImport.update({
+  id: '/drivers',
+  path: '/drivers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDocumentsRoute = AuthenticatedDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDispatchRoute = AuthenticatedDispatchRouteImport.update({
+  id: '/dispatch',
+  path: '/dispatch',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCustomersRoute = AuthenticatedCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/customers': typeof AuthenticatedCustomersRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dispatch': typeof AuthenticatedDispatchRoute
+  '/documents': typeof AuthenticatedDocumentsRoute
+  '/drivers': typeof AuthenticatedDriversRoute
+  '/incidents': typeof AuthenticatedIncidentsRoute
+  '/maintenance': typeof AuthenticatedMaintenanceRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/operations': typeof AuthenticatedOperationsRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/vehicles': typeof AuthenticatedVehiclesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/customers': typeof AuthenticatedCustomersRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dispatch': typeof AuthenticatedDispatchRoute
+  '/documents': typeof AuthenticatedDocumentsRoute
+  '/drivers': typeof AuthenticatedDriversRoute
+  '/incidents': typeof AuthenticatedIncidentsRoute
+  '/maintenance': typeof AuthenticatedMaintenanceRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/operations': typeof AuthenticatedOperationsRoute
+  '/settings': typeof AuthenticatedSettingsRoute
+  '/vehicles': typeof AuthenticatedVehiclesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/onboarding': typeof OnboardingRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/customers': typeof AuthenticatedCustomersRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/dispatch': typeof AuthenticatedDispatchRoute
+  '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
+  '/_authenticated/drivers': typeof AuthenticatedDriversRoute
+  '/_authenticated/incidents': typeof AuthenticatedIncidentsRoute
+  '/_authenticated/maintenance': typeof AuthenticatedMaintenanceRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/operations': typeof AuthenticatedOperationsRoute
+  '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/forgot-password'
+    | '/onboarding'
+    | '/reset-password'
+    | '/customers'
+    | '/dashboard'
+    | '/dispatch'
+    | '/documents'
+    | '/drivers'
+    | '/incidents'
+    | '/maintenance'
+    | '/notifications'
+    | '/operations'
+    | '/settings'
+    | '/vehicles'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/forgot-password'
+    | '/onboarding'
+    | '/reset-password'
+    | '/customers'
+    | '/dashboard'
+    | '/dispatch'
+    | '/documents'
+    | '/drivers'
+    | '/incidents'
+    | '/maintenance'
+    | '/notifications'
+    | '/operations'
+    | '/settings'
+    | '/vehicles'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/forgot-password'
+    | '/onboarding'
+    | '/reset-password'
+    | '/_authenticated/customers'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/dispatch'
+    | '/_authenticated/documents'
+    | '/_authenticated/drivers'
+    | '/_authenticated/incidents'
+    | '/_authenticated/maintenance'
+    | '/_authenticated/notifications'
+    | '/_authenticated/operations'
+    | '/_authenticated/settings'
+    | '/_authenticated/vehicles'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  OnboardingRoute: typeof OnboardingRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +281,124 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/vehicles': {
+      id: '/_authenticated/vehicles'
+      path: '/vehicles'
+      fullPath: '/vehicles'
+      preLoaderRoute: typeof AuthenticatedVehiclesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings': {
+      id: '/_authenticated/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/operations': {
+      id: '/_authenticated/operations'
+      path: '/operations'
+      fullPath: '/operations'
+      preLoaderRoute: typeof AuthenticatedOperationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/maintenance': {
+      id: '/_authenticated/maintenance'
+      path: '/maintenance'
+      fullPath: '/maintenance'
+      preLoaderRoute: typeof AuthenticatedMaintenanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/incidents': {
+      id: '/_authenticated/incidents'
+      path: '/incidents'
+      fullPath: '/incidents'
+      preLoaderRoute: typeof AuthenticatedIncidentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/drivers': {
+      id: '/_authenticated/drivers'
+      path: '/drivers'
+      fullPath: '/drivers'
+      preLoaderRoute: typeof AuthenticatedDriversRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/documents': {
+      id: '/_authenticated/documents'
+      path: '/documents'
+      fullPath: '/documents'
+      preLoaderRoute: typeof AuthenticatedDocumentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dispatch': {
+      id: '/_authenticated/dispatch'
+      path: '/dispatch'
+      fullPath: '/dispatch'
+      preLoaderRoute: typeof AuthenticatedDispatchRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/customers': {
+      id: '/_authenticated/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof AuthenticatedCustomersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDispatchRoute: typeof AuthenticatedDispatchRoute
+  AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
+  AuthenticatedDriversRoute: typeof AuthenticatedDriversRoute
+  AuthenticatedIncidentsRoute: typeof AuthenticatedIncidentsRoute
+  AuthenticatedMaintenanceRoute: typeof AuthenticatedMaintenanceRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedOperationsRoute: typeof AuthenticatedOperationsRoute
+  AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedVehiclesRoute: typeof AuthenticatedVehiclesRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDispatchRoute: AuthenticatedDispatchRoute,
+  AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
+  AuthenticatedDriversRoute: AuthenticatedDriversRoute,
+  AuthenticatedIncidentsRoute: AuthenticatedIncidentsRoute,
+  AuthenticatedMaintenanceRoute: AuthenticatedMaintenanceRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedOperationsRoute: AuthenticatedOperationsRoute,
+  AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedVehiclesRoute: AuthenticatedVehiclesRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  OnboardingRoute: OnboardingRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
