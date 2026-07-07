@@ -2,11 +2,14 @@ import { expect, test } from "@playwright/test";
 
 const protectedRoutes = [
   "/dashboard",
+  "/driver",
   "/vehicles",
   "/drivers",
   "/operations",
   "/dispatch",
   "/documents",
+  "/incidents",
+  "/maintenance",
 ];
 
 async function expectNoHorizontalOverflow(page: import("@playwright/test").Page) {

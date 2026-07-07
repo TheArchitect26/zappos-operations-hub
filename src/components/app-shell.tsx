@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  Smartphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/lib/company-context";
@@ -36,6 +37,7 @@ interface NavItem {
 
 const ALL: NavItem[] = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, mobile: true },
+  { label: "Driver", to: "/driver", icon: Smartphone, roles: ["driver"], mobile: true },
   { label: "Operations", to: "/operations", icon: ClipboardList, mobile: true },
   { label: "Dispatch", to: "/dispatch", icon: Radio, roles: ["admin", "dispatcher"], mobile: true },
   {

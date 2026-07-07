@@ -388,6 +388,70 @@ export type Database = {
           },
         ];
       };
+      job_proofs: {
+        Row: {
+          company_id: string;
+          completed_at: string;
+          created_at: string;
+          created_by: string | null;
+          driver_id: string | null;
+          id: string;
+          job_id: string;
+          notes: string | null;
+          photo_url: string | null;
+          recipient_name: string;
+          signature_url: string | null;
+        };
+        Insert: {
+          company_id: string;
+          completed_at?: string;
+          created_at?: string;
+          created_by?: string | null;
+          driver_id?: string | null;
+          id?: string;
+          job_id: string;
+          notes?: string | null;
+          photo_url?: string | null;
+          recipient_name: string;
+          signature_url?: string | null;
+        };
+        Update: {
+          company_id?: string;
+          completed_at?: string;
+          created_at?: string;
+          created_by?: string | null;
+          driver_id?: string | null;
+          id?: string;
+          job_id?: string;
+          notes?: string | null;
+          photo_url?: string | null;
+          recipient_name?: string;
+          signature_url?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "job_proofs_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_proofs_driver_id_fkey";
+            columns: ["driver_id"];
+            isOneToOne: false;
+            referencedRelation: "drivers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_proofs_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       jobs: {
         Row: {
           accepted_at: string | null;
@@ -792,6 +856,30 @@ export type Database = {
         };
         Returns: Json;
       };
+      current_driver_id: { Args: { _company_id: string }; Returns: string };
+      driver_fail_job: {
+        Args: { _job_id: string; _reason: string; _notes?: string | null };
+        Returns: Database["public"]["Tables"]["jobs"]["Row"];
+      };
+      driver_transition_job: {
+        Args: { _job_id: string; _action: string };
+        Returns: Database["public"]["Tables"]["jobs"]["Row"];
+      };
+      driver_update_job_notes: {
+        Args: { _job_id: string; _notes: string };
+        Returns: Database["public"]["Tables"]["jobs"]["Row"];
+      };
+      submit_job_proof: {
+        Args: {
+          _job_id: string;
+          _recipient_name: string;
+          _notes?: string | null;
+          _photo_url?: string | null;
+          _signature_url?: string | null;
+        };
+        Returns: Database["public"]["Tables"]["jobs"]["Row"];
+      };
+      is_driver_relevant_job: { Args: { _job_id: string }; Returns: boolean };
       job_assignment_conflicts: {
         Args: {
           _company_id: string;

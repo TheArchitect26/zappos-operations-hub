@@ -22,6 +22,7 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedMaintenanceRouteImport } from './routes/_authenticated/maintenance'
 import { Route as AuthenticatedIncidentsRouteImport } from './routes/_authenticated/incidents'
 import { Route as AuthenticatedDriversRouteImport } from './routes/_authenticated/drivers'
+import { Route as AuthenticatedDriverRouteImport } from './routes/_authenticated/driver'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDispatchRouteImport } from './routes/_authenticated/dispatch'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -93,6 +94,11 @@ const AuthenticatedDriversRoute = AuthenticatedDriversRouteImport.update({
   path: '/drivers',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDriverRoute = AuthenticatedDriverRouteImport.update({
+  id: '/driver',
+  path: '/driver',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDocumentsRoute = AuthenticatedDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/dispatch': typeof AuthenticatedDispatchRoute
   '/documents': typeof AuthenticatedDocumentsRoute
+  '/driver': typeof AuthenticatedDriverRoute
   '/drivers': typeof AuthenticatedDriversRoute
   '/incidents': typeof AuthenticatedIncidentsRoute
   '/maintenance': typeof AuthenticatedMaintenanceRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/dispatch': typeof AuthenticatedDispatchRoute
   '/documents': typeof AuthenticatedDocumentsRoute
+  '/driver': typeof AuthenticatedDriverRoute
   '/drivers': typeof AuthenticatedDriversRoute
   '/incidents': typeof AuthenticatedIncidentsRoute
   '/maintenance': typeof AuthenticatedMaintenanceRoute
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/dispatch': typeof AuthenticatedDispatchRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
+  '/_authenticated/driver': typeof AuthenticatedDriverRoute
   '/_authenticated/drivers': typeof AuthenticatedDriversRoute
   '/_authenticated/incidents': typeof AuthenticatedIncidentsRoute
   '/_authenticated/maintenance': typeof AuthenticatedMaintenanceRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/dispatch'
     | '/documents'
+    | '/driver'
     | '/drivers'
     | '/incidents'
     | '/maintenance'
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/dispatch'
     | '/documents'
+    | '/driver'
     | '/drivers'
     | '/incidents'
     | '/maintenance'
@@ -219,6 +230,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/dispatch'
     | '/_authenticated/documents'
+    | '/_authenticated/driver'
     | '/_authenticated/drivers'
     | '/_authenticated/incidents'
     | '/_authenticated/maintenance'
@@ -330,6 +342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDriversRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/driver': {
+      id: '/_authenticated/driver'
+      path: '/driver'
+      fullPath: '/driver'
+      preLoaderRoute: typeof AuthenticatedDriverRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/documents': {
       id: '/_authenticated/documents'
       path: '/documents'
@@ -366,6 +385,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDispatchRoute: typeof AuthenticatedDispatchRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
+  AuthenticatedDriverRoute: typeof AuthenticatedDriverRoute
   AuthenticatedDriversRoute: typeof AuthenticatedDriversRoute
   AuthenticatedIncidentsRoute: typeof AuthenticatedIncidentsRoute
   AuthenticatedMaintenanceRoute: typeof AuthenticatedMaintenanceRoute
@@ -380,6 +400,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDispatchRoute: AuthenticatedDispatchRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
+  AuthenticatedDriverRoute: AuthenticatedDriverRoute,
   AuthenticatedDriversRoute: AuthenticatedDriversRoute,
   AuthenticatedIncidentsRoute: AuthenticatedIncidentsRoute,
   AuthenticatedMaintenanceRoute: AuthenticatedMaintenanceRoute,

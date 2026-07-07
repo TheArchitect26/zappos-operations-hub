@@ -50,6 +50,10 @@ function DashboardPage() {
   const [expiringDocs, setExpiringDocs] = useState(0);
   const [expiredDocs, setExpiredDocs] = useState(0);
   const [failedJobs, setFailedJobs] = useState(0);
+  const [openIncidents, setOpenIncidents] = useState(0);
+  const [criticalIncidents, setCriticalIncidents] = useState(0);
+  const [overdueMaintenance, setOverdueMaintenance] = useState(0);
+  const [activeMaintenance, setActiveMaintenance] = useState(0);
 
   const { jobs, loading: jobsLoading, error: jobsError, fetch: fetchJobs } = useJobs();
   const {
@@ -126,6 +130,31 @@ function DashboardPage() {
         .eq("status", "failed");
 
       setFailedJobs(failed?.length || 0);
+
+      const { data: incidents } = await supabase
+        .from("incidents")
+        .select("id, severity, status")
+        .eq("company_id", activeCompany.id);
+
+      setOpenIncidents(incidents?.filter((incident) => incident.status === "open").length || 0);
+      setCriticalIncidents(
+        incidents?.filter(
+          (incident) => incident.status !== "resolved" && incident.severity === "critical",
+        ).length || 0,
+      );
+
+      const { data: maintenance } = await supabase
+        .from("maintenance")
+        .select("id, scheduled_date, status")
+        .eq("company_id", activeCompany.id);
+
+      setActiveMaintenance(maintenance?.filter((item) => item.status !== "completed").length || 0);
+      setOverdueMaintenance(
+        maintenance?.filter(
+          (item) =>
+            item.status !== "completed" && item.scheduled_date && item.scheduled_date < today,
+        ).length || 0,
+      );
     };
 
     load();
@@ -137,6 +166,11 @@ function DashboardPage() {
   if (waitingDispatchCount > 0)
     attentionItems.push(`${waitingDispatchCount} ${terminology.plural} waiting for dispatch`);
   if (failedJobs > 0) attentionItems.push(`${failedJobs} failed ${terminology.plural}`);
+  if (criticalIncidents > 0) attentionItems.push(`${criticalIncidents} critical incidents open`);
+  if (openIncidents > 0) attentionItems.push(`${openIncidents} open incidents`);
+  if (overdueMaintenance > 0)
+    attentionItems.push(`${overdueMaintenance} overdue maintenance tasks`);
+  if (activeMaintenance > 0) attentionItems.push(`${activeMaintenance} active maintenance tasks`);
   if (vehicleIssuesCount > 0) attentionItems.push(`${vehicleIssuesCount} vehicles need attention`);
   if (assignedProblemDriversCount > 0)
     attentionItems.push(
@@ -180,7 +214,7 @@ function DashboardPage() {
         </p>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-10">
         <StatCard
           icon={Radio}
           label={`Active ${terminology.plural}`}
@@ -222,6 +256,18 @@ function DashboardPage() {
           label="In maintenance"
           value={vehiclesInMaintenanceCount}
           tone="text-status-neutral"
+        />
+        <StatCard
+          icon={AlertTriangle}
+          label="Open incidents"
+          value={openIncidents}
+          tone="text-status-error"
+        />
+        <StatCard
+          icon={Wrench}
+          label="Overdue maint."
+          value={overdueMaintenance}
+          tone="text-status-error"
         />
         <StatCard
           icon={ShieldAlert}
