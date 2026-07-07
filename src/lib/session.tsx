@@ -22,13 +22,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.warn("[Auth] initial session lookup failed", {
+          message: error.message,
+          status: error.status,
+        });
+      }
       setSession(data.session);
       setLoading(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      console.info("[Auth] state changed", { event, hasSession: Boolean(next) });
       setSession(next);
       router.invalidate();
     });

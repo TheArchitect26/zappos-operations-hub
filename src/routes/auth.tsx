@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Button } from "@/components/ui/button";
@@ -26,18 +26,43 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState("");
+  const [authMessage, setAuthMessage] = useState("");
+
+  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
 
   useEffect(() => {
     if (!loading && session) navigate({ to: "/dashboard", replace: true });
   }, [session, loading, navigate]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const callbackError =
+      params.get("error_description") ||
+      hashParams.get("error_description") ||
+      params.get("error") ||
+      hashParams.get("error");
+
+    if (!callbackError) return;
+    const message = normalizeAuthError(new Error(callbackError), "Could not complete sign in");
+    setAuthMessage(message);
+    toast.error(message);
+  }, []);
+
+  const showAuthError = (err: unknown, fallback = "Something went wrong") => {
+    const message = normalizeAuthError(err, fallback);
+    setAuthMessage(message);
+    toast.error(message);
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
+    setAuthMessage("");
     try {
       if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: normalizedEmail,
           password,
           options: {
             data: { full_name: fullName },
@@ -53,15 +78,19 @@ function AuthPage() {
         });
 
         if (isEmailConfirmationPending({ session: data.session, user: data.user })) {
-          setConfirmationEmail(email);
+          setConfirmationEmail(normalizedEmail);
           setMode("confirm");
           setPassword("");
+          setAuthMessage("Check your email to confirm your account before signing in.");
           return;
         }
 
         toast.success("Account created. Redirecting…");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
         if (error) throw error;
         toast.success("Signed in");
       }
@@ -70,7 +99,7 @@ function AuthPage() {
         mode,
         message: err instanceof Error ? err.message : "unknown",
       });
-      toast.error(normalizeAuthError(err, "Something went wrong"));
+      showAuthError(err);
     } finally {
       setBusy(false);
     }
@@ -108,20 +137,30 @@ function AuthPage() {
             {mode === "confirm" ? (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Finish confirming the account before signing in. If the message does not arrive,
-                  check spam or request another signup with the same email.
+                  Finish confirming {confirmationEmail || "your account"} before signing in. If the
+                  message does not arrive, check spam or sign up again with the same email address.
                 </p>
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full"
-                  onClick={() => setMode("signin")}
+                  onClick={() => {
+                    setEmail(confirmationEmail);
+                    setMode("signin");
+                    setAuthMessage("");
+                  }}
                 >
                   Back to sign in
                 </Button>
               </div>
             ) : (
-              <Tabs value={mode} onValueChange={(v) => setMode(v as "signin" | "signup")}>
+              <Tabs
+                value={mode}
+                onValueChange={(v) => {
+                  setMode(v as "signin" | "signup");
+                  setAuthMessage("");
+                }}
+              >
                 <TabsList className="mb-5 grid grid-cols-2">
                   <TabsTrigger value="signin">Sign in</TabsTrigger>
                   <TabsTrigger value="signup">Sign up</TabsTrigger>
@@ -177,6 +216,11 @@ function AuthPage() {
                       {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                       {mode === "signup" ? "Create account" : "Sign in"}
                     </Button>
+                    {authMessage ? (
+                      <p role="status" className="text-sm text-muted-foreground">
+                        {authMessage}
+                      </p>
+                    ) : null}
                   </form>
                 </TabsContent>
               </Tabs>
