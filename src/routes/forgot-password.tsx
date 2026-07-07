@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Wordmark } from "@/components/brand/wordmark";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { normalizeAuthError } from "@/lib/auth-errors";
 
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({
@@ -28,7 +29,7 @@ function ForgotPasswordPage() {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(normalizeAuthError(error, "Could not send reset link"));
     setSent(true);
   };
 
