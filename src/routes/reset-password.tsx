@@ -10,7 +10,9 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/reset-password")({
-  head: () => ({ meta: [{ title: "Set new password — ZappOS" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Set new password — ZappOS" }, { name: "robots", content: "noindex" }],
+  }),
   component: ResetPasswordPage,
 });
 
@@ -25,7 +27,9 @@ function ResetPasswordPage() {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
     });
-    supabase.auth.getSession().then(({ data }) => { if (data.session) setReady(true); });
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setReady(true);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -42,7 +46,9 @@ function ResetPasswordPage() {
   return (
     <div className="grid min-h-screen place-items-center bg-background px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex justify-center"><Wordmark size="lg" /></div>
+        <div className="mb-6 flex justify-center">
+          <Wordmark size="lg" />
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Set a new password</CardTitle>
@@ -50,12 +56,21 @@ function ResetPasswordPage() {
           </CardHeader>
           <CardContent>
             {!ready ? (
-              <p className="text-sm text-muted-foreground">Waiting for reset link… If nothing happens, request a new link.</p>
+              <p className="text-sm text-muted-foreground">
+                Waiting for reset link… If nothing happens, request a new link.
+              </p>
             ) : (
               <form className="space-y-4" onSubmit={submit}>
                 <div className="space-y-1.5">
                   <Label htmlFor="password">New password</Label>
-                  <Input id="password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    minLength={8}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
                 </div>
                 <Button type="submit" className="w-full" disabled={busy}>
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

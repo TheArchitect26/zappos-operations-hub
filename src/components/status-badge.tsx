@@ -18,7 +18,12 @@ export interface StatusBadgeProps {
   dot?: boolean;
 }
 
-export function StatusBadge({ tone = "neutral", children, className, dot = true }: StatusBadgeProps) {
+export function StatusBadge({
+  tone = "neutral",
+  children,
+  className,
+  dot = true,
+}: StatusBadgeProps) {
   return (
     <span
       className={cn(
@@ -47,34 +52,53 @@ export function StatusBadge({ tone = "neutral", children, className, dot = true 
 /** Map ZappOS domain statuses to visual tones + label. */
 export function jobStatusTone(status: string): { tone: Tone; label: string } {
   switch (status) {
-    case "unassigned": return { tone: "neutral", label: "Unassigned" };
-    case "assigned": return { tone: "warning", label: "Assigned" };
-    case "accepted": return { tone: "in-use", label: "Accepted" };
-    case "in_progress": return { tone: "in-use", label: "In progress" };
-    case "arrived": return { tone: "in-use", label: "Arrived" };
-    case "completed": return { tone: "available", label: "Completed" };
-    case "failed": return { tone: "danger", label: "Failed" };
-    case "cancelled": return { tone: "neutral", label: "Cancelled" };
-    default: return { tone: "neutral", label: status };
+    case "unassigned":
+      return { tone: "neutral", label: "Unassigned" };
+    case "assigned":
+      return { tone: "warning", label: "Assigned" };
+    case "accepted":
+      return { tone: "in-use", label: "Accepted" };
+    case "in_progress":
+      return { tone: "in-use", label: "In progress" };
+    case "arrived":
+      return { tone: "in-use", label: "Arrived" };
+    case "completed":
+      return { tone: "available", label: "Completed" };
+    case "failed":
+      return { tone: "danger", label: "Failed" };
+    case "cancelled":
+      return { tone: "neutral", label: "Cancelled" };
+    default:
+      return { tone: "neutral", label: status };
   }
 }
 
 export function vehicleStatusTone(status: string): { tone: Tone; label: string } {
   switch (status) {
-    case "available": return { tone: "available", label: "Available" };
-    case "in_use": return { tone: "in-use", label: "In use" };
-    case "maintenance": return { tone: "warning", label: "Maintenance" };
-    case "out_of_service": return { tone: "danger", label: "Out of service" };
-    default: return { tone: "neutral", label: status };
+    case "available":
+      return { tone: "available", label: "Available" };
+    case "in_use":
+      return { tone: "in-use", label: "In use" };
+    case "maintenance":
+      return { tone: "warning", label: "Maintenance" };
+    case "out_of_service":
+      return { tone: "danger", label: "Out of service" };
+    default:
+      return { tone: "neutral", label: status };
   }
 }
 
 export function driverStatusTone(status: string): { tone: Tone; label: string } {
   switch (status) {
-    case "available": return { tone: "available", label: "Available" };
-    case "on_trip": return { tone: "in-use", label: "On trip" };
-    case "off_duty": return { tone: "neutral", label: "Off duty" };
-    case "suspended": return { tone: "danger", label: "Suspended" };
-    default: return { tone: "neutral", label: status };
+    case "available":
+      return { tone: "available", label: "Available" };
+    case "on_trip":
+      return { tone: "in-use", label: "On trip" };
+    case "off_duty":
+      return { tone: "neutral", label: "Off duty" };
+    case "suspended":
+      return { tone: "danger", label: "Suspended" };
+    default:
+      return { tone: "neutral", label: status };
   }
 }

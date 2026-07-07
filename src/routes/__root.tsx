@@ -80,10 +80,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "ZappOS — Transport & Fleet Operations" },
-      { name: "description", content: "ZappOS is a mobile-first transport and fleet operations platform for logistics, courier, last-mile, food delivery, fuel transport, passenger transport, and any business running its own vehicles." },
+      {
+        name: "description",
+        content:
+          "ZappOS is a mobile-first transport and fleet operations platform for logistics, courier, last-mile, food delivery, fuel transport, passenger transport, and any business running its own vehicles.",
+      },
       { name: "theme-color", content: "#0b1220" },
       { property: "og:title", content: "ZappOS — Transport & Fleet Operations" },
-      { property: "og:description", content: "Know what's happening in your operation right now, and what needs your attention." },
+      {
+        property: "og:description",
+        content:
+          "Know what's happening in your operation right now, and what needs your attention.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "apple-mobile-web-app-capable", content: "yes" },

@@ -10,7 +10,9 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/forgot-password")({
-  head: () => ({ meta: [{ title: "Reset password — ZappOS" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Reset password — ZappOS" }, { name: "robots", content: "noindex" }],
+  }),
   component: ForgotPasswordPage,
 });
 
@@ -33,29 +35,43 @@ function ForgotPasswordPage() {
   return (
     <div className="grid min-h-screen place-items-center bg-background px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex justify-center"><Wordmark size="lg" /></div>
+        <div className="mb-6 flex justify-center">
+          <Wordmark size="lg" />
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Reset your password</CardTitle>
             <CardDescription>
-              {sent ? "Check your email for a reset link." : "Enter your email and we'll send you a reset link."}
+              {sent
+                ? "Check your email for a reset link."
+                : "Enter your email and we'll send you a reset link."}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {sent ? (
-              <Link to="/auth" className="text-sm text-primary hover:underline">Back to sign in</Link>
+              <Link to="/auth" className="text-sm text-primary hover:underline">
+                Back to sign in
+              </Link>
             ) : (
               <form className="space-y-4" onSubmit={submit}>
                 <div className="space-y-1.5">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </div>
                 <Button type="submit" className="w-full" disabled={busy}>
                   {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Send reset link
                 </Button>
                 <div className="text-center text-sm">
-                  <Link to="/auth" className="text-muted-foreground hover:text-foreground">Back to sign in</Link>
+                  <Link to="/auth" className="text-muted-foreground hover:text-foreground">
+                    Back to sign in
+                  </Link>
                 </div>
               </form>
             )}

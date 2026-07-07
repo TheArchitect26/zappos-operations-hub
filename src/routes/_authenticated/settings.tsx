@@ -15,7 +15,9 @@ function SettingsPage() {
       <p className="mt-1 text-sm text-muted-foreground">Manage your workspace and preferences.</p>
 
       <Card className="mt-5 p-5">
-        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Workspace</div>
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Workspace
+        </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>
             <div className="text-xs text-muted-foreground">Company</div>
@@ -23,7 +25,9 @@ function SettingsPage() {
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Business type</div>
-            <div className="mt-0.5 text-sm font-medium capitalize">{activeCompany?.business_type?.replace("_", " ")}</div>
+            <div className="mt-0.5 text-sm font-medium capitalize">
+              {activeCompany?.business_type?.replace("_", " ")}
+            </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Country</div>
@@ -35,17 +39,23 @@ function SettingsPage() {
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Terminology</div>
-            <div className="mt-0.5 text-sm font-medium capitalize">{activeCompany?.terminology}</div>
+            <div className="mt-0.5 text-sm font-medium capitalize">
+              {activeCompany?.terminology}
+            </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Your roles</div>
-            <div className="mt-0.5 text-sm font-medium capitalize">{roles.join(", ").replace(/_/g, " ") || "—"}</div>
+            <div className="mt-0.5 text-sm font-medium capitalize">
+              {roles.join(", ").replace(/_/g, " ") || "—"}
+            </div>
           </div>
         </div>
       </Card>
 
       <Card className="mt-5 p-5">
-        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Coming soon</div>
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Coming soon
+        </div>
         <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
           <li>· Team members &amp; roles</li>
           <li>· Document expiry threshold</li>

@@ -1,8 +1,20 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
-  LayoutDashboard, ClipboardList, Radio, Truck, Users, Wrench, AlertTriangle,
-  FileText, Building2, Bell, Settings, LogOut, Menu, X,
+  LayoutDashboard,
+  ClipboardList,
+  Radio,
+  Truck,
+  Users,
+  Wrench,
+  AlertTriangle,
+  FileText,
+  Building2,
+  Bell,
+  Settings,
+  LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/lib/company-context";
@@ -23,17 +35,42 @@ interface NavItem {
 }
 
 const ALL: NavItem[] = [
-  { label: "Dashboard",     to: "/dashboard",     icon: LayoutDashboard, mobile: true },
-  { label: "Operations",    to: "/operations",    icon: ClipboardList,   mobile: true },
-  { label: "Dispatch",      to: "/dispatch",      icon: Radio,           roles: ["admin", "dispatcher"], mobile: true },
-  { label: "Vehicles",      to: "/vehicles",      icon: Truck,           roles: ["admin", "fleet_manager", "dispatcher", "viewer"] },
-  { label: "Drivers",       to: "/drivers",       icon: Users,           roles: ["admin", "fleet_manager", "dispatcher", "viewer"] },
-  { label: "Maintenance",   to: "/maintenance",   icon: Wrench,          roles: ["admin", "fleet_manager", "viewer"] },
-  { label: "Incidents",     to: "/incidents",     icon: AlertTriangle,   mobile: true },
-  { label: "Documents",     to: "/documents",     icon: FileText,        roles: ["admin", "fleet_manager", "viewer"] },
-  { label: "Customers",     to: "/customers",     icon: Building2,       roles: ["admin", "dispatcher", "viewer"] },
-  { label: "Notifications", to: "/notifications", icon: Bell,            mobile: true },
-  { label: "Settings",      to: "/settings",      icon: Settings,        roles: ["admin"] },
+  { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, mobile: true },
+  { label: "Operations", to: "/operations", icon: ClipboardList, mobile: true },
+  { label: "Dispatch", to: "/dispatch", icon: Radio, roles: ["admin", "dispatcher"], mobile: true },
+  {
+    label: "Vehicles",
+    to: "/vehicles",
+    icon: Truck,
+    roles: ["admin", "fleet_manager", "dispatcher", "viewer"],
+  },
+  {
+    label: "Drivers",
+    to: "/drivers",
+    icon: Users,
+    roles: ["admin", "fleet_manager", "dispatcher", "viewer"],
+  },
+  {
+    label: "Maintenance",
+    to: "/maintenance",
+    icon: Wrench,
+    roles: ["admin", "fleet_manager", "viewer"],
+  },
+  { label: "Incidents", to: "/incidents", icon: AlertTriangle, mobile: true },
+  {
+    label: "Documents",
+    to: "/documents",
+    icon: FileText,
+    roles: ["admin", "fleet_manager", "viewer"],
+  },
+  {
+    label: "Customers",
+    to: "/customers",
+    icon: Building2,
+    roles: ["admin", "dispatcher", "viewer"],
+  },
+  { label: "Notifications", to: "/notifications", icon: Bell, mobile: true },
+  { label: "Settings", to: "/settings", icon: Settings, roles: ["admin"] },
 ];
 
 function filterFor(items: NavItem[], roles: Role[]): NavItem[] {
@@ -67,7 +104,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <div className="px-3 pt-4">
           <div className="rounded-md bg-sidebar-accent/60 px-3 py-2 text-xs">
-            <div className="truncate font-semibold text-sidebar-accent-foreground">{activeCompany?.name}</div>
+            <div className="truncate font-semibold text-sidebar-accent-foreground">
+              {activeCompany?.name}
+            </div>
             <div className="mt-0.5 truncate text-[10px] uppercase tracking-wider text-muted-foreground">
               {roles.join(" · ") || "no role"}
             </div>
@@ -106,12 +145,21 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
         <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/95 px-4 backdrop-blur lg:hidden">
-          <Button variant="ghost" size="icon" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
+          >
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="min-w-0 flex-1"><Wordmark size="sm" /></div>
+          <div className="min-w-0 flex-1">
+            <Wordmark size="sm" />
+          </div>
           <Link to="/notifications" aria-label="Notifications">
-            <Button variant="ghost" size="icon"><Bell className="h-5 w-5" /></Button>
+            <Button variant="ghost" size="icon">
+              <Bell className="h-5 w-5" />
+            </Button>
           </Link>
         </header>
 
@@ -143,11 +191,19 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Mobile drawer */}
       {mobileOpen ? (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <div
+            className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
           <aside className="absolute inset-y-0 left-0 w-72 border-r border-sidebar-border bg-sidebar p-3">
             <div className="mb-3 flex items-center justify-between">
               <Wordmark size="md" />
-              <Button variant="ghost" size="icon" onClick={() => setMobileOpen(false)} aria-label="Close">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close"
+              >
                 <X className="h-5 w-5" />
               </Button>
             </div>

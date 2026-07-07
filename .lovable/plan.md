@@ -1,4 +1,3 @@
-
 # ZappOS — MVP Build Plan
 
 ZappOS is a large product spec. To ship something stable and testable I'll build it in **4 phases**, each independently working and demoable. This response covers what I'll build, in what order, and where I need one decision from you before starting.

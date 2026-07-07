@@ -82,23 +82,47 @@ function AuthPage() {
                   {mode === "signup" ? (
                     <div className="space-y-1.5">
                       <Label htmlFor="fullName">Full name</Label>
-                      <Input id="fullName" required value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
+                      <Input
+                        id="fullName"
+                        required
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        autoComplete="name"
+                      />
                     </div>
                   ) : null}
                   <div className="space-y-1.5">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+                    <Input
+                      id="email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">Password</Label>
                       {mode === "signin" ? (
-                        <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground">
+                        <Link
+                          to="/forgot-password"
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
                           Forgot?
                         </Link>
                       ) : null}
                     </div>
-                    <Input id="password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "signup" ? "new-password" : "current-password"} />
+                    <Input
+                      id="password"
+                      type="password"
+                      required
+                      minLength={8}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                    />
                   </div>
                   <Button type="submit" className="w-full" disabled={busy}>
                     {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

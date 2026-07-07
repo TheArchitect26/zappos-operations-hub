@@ -38,13 +38,15 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     }
     setLoading(true);
     const [{ data: members }, { data: profile }] = await Promise.all([
-      supabase.from("company_members").select("company_id, companies:company_id(*)").eq("user_id", user.id),
+      supabase
+        .from("company_members")
+        .select("company_id, companies:company_id(*)")
+        .eq("user_id", user.id),
       supabase.from("profiles").select("active_company_id").eq("id", user.id).maybeSingle(),
     ]);
-    const list: Company[] =
-      (members ?? [])
-        .map((m) => (m as unknown as { companies: Company | null }).companies)
-        .filter((c): c is Company => !!c);
+    const list: Company[] = (members ?? [])
+      .map((m) => (m as unknown as { companies: Company | null }).companies)
+      .filter((c): c is Company => !!c);
     setCompanies(list);
     let activeId = profile?.active_company_id ?? null;
     if (!activeId || !list.find((c) => c.id === activeId)) {
