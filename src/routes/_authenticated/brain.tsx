@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   MessageSquare,
+  PlayCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/lib/company-context";
@@ -23,7 +24,16 @@ import {
   confidenceLabel,
   createFeedbackInsert,
   filterInsights,
+  generateDeterministicBrainInsights,
   statusAfterFeedback,
+  type BrainDocumentInput,
+  type BrainIncidentInput,
+  type BrainJobEventInput,
+  type BrainJobInput,
+  type BrainMaintenanceInput,
+  type BrainRouteBaselineInput,
+  type BrainRouteRecordInput,
+  type BrainTrackingSummaryInput,
   type ZappBrainCategory,
   type ZappBrainConfidence,
   type ZappBrainFeedbackMark,
@@ -53,10 +63,20 @@ type UpdateBuilder = QueryResult & {
 type BrainSupabase = {
   from: (table: string) => {
     select: (columns?: string) => FilterBuilder;
-    insert: (values: object) => QueryResult;
+    insert: (values: object | object[]) => QueryResult;
     update: (values: object) => UpdateBuilder;
   };
 };
+
+interface BrainRunRow {
+  id: string;
+  company_id: string;
+  source: string;
+  status: string;
+  output_summary: Record<string, unknown>;
+  error_message: string | null;
+  created_at: string;
+}
 
 function brainDb() {
   return supabase as unknown as BrainSupabase;
@@ -95,8 +115,11 @@ function BrainPage() {
   const { activeCompany, hasAnyRole } = useCompany();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [runningAnalysis, setRunningAnalysis] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [insights, setInsights] = useState<ZappBrainInsight[]>([]);
+  const [lastRun, setLastRun] = useState<BrainRunRow | null>(null);
+  const [lastGeneratedCount, setLastGeneratedCount] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<ZappBrainInsightFilters>({
     category: "all",
@@ -118,15 +141,25 @@ function BrainPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await brainDb()
-        .from("zapp_brain_insights")
-        .select("*")
-        .eq("company_id", activeCompanyId)
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (result.error) throw result.error;
-      const rows = (result.data ?? []) as ZappBrainInsight[];
+      const [insightResult, runResult] = await Promise.all([
+        brainDb()
+          .from("zapp_brain_insights")
+          .select("*")
+          .eq("company_id", activeCompanyId)
+          .order("created_at", { ascending: false })
+          .limit(100),
+        brainDb()
+          .from("zapp_brain_runs")
+          .select("*")
+          .eq("company_id", activeCompanyId)
+          .order("created_at", { ascending: false })
+          .limit(1),
+      ]);
+      if (insightResult.error) throw insightResult.error;
+      if (runResult.error) throw runResult.error;
+      const rows = (insightResult.data ?? []) as ZappBrainInsight[];
       setInsights(rows);
+      setLastRun(((runResult.data ?? []) as BrainRunRow[])[0] ?? null);
       setSelectedId((current) => current ?? rows[0]?.id ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load Zapp Brain insights");
@@ -184,6 +217,154 @@ function BrainPage() {
     }
   };
 
+  const runAnalysis = async () => {
+    if (!activeCompanyId || !activeCompany || !canReview) return;
+    const runId = crypto.randomUUID();
+    setRunningAnalysis(true);
+    setLastGeneratedCount(null);
+    setError(null);
+    try {
+      const runInsert = await brainDb()
+        .from("zapp_brain_runs")
+        .insert({
+          id: runId,
+          company_id: activeCompanyId,
+          source: "deterministic_v0",
+          status: "received",
+          input_summary: { mode: "deterministic_v0" },
+        });
+      if (runInsert.error) throw runInsert.error;
+
+      const [
+        documentResult,
+        routeBaselineResult,
+        routeRecordResult,
+        incidentResult,
+        maintenanceResult,
+        jobResult,
+        jobEventResult,
+        trackingSummaryResult,
+        existingInsightResult,
+      ] = await Promise.all([
+        brainDb().from("documents").select("*").eq("company_id", activeCompanyId).limit(500),
+        brainDb()
+          .from("route_segment_baselines")
+          .select("*")
+          .eq("company_id", activeCompanyId)
+          .limit(500),
+        brainDb()
+          .from("route_performance_records")
+          .select("*")
+          .eq("company_id", activeCompanyId)
+          .limit(1000),
+        brainDb().from("incidents").select("*").eq("company_id", activeCompanyId).limit(500),
+        brainDb().from("maintenance").select("*").eq("company_id", activeCompanyId).limit(500),
+        brainDb().from("jobs").select("*").eq("company_id", activeCompanyId).limit(1000),
+        brainDb().from("job_events").select("*").eq("company_id", activeCompanyId).limit(1000),
+        brainDb()
+          .from("tracking_summaries")
+          .select("*")
+          .eq("company_id", activeCompanyId)
+          .limit(1000),
+        brainDb()
+          .from("zapp_brain_insights")
+          .select("evidence,status,source")
+          .eq("company_id", activeCompanyId)
+          .eq("source", "deterministic_v0")
+          .limit(1000),
+      ]);
+
+      for (const result of [
+        documentResult,
+        routeBaselineResult,
+        routeRecordResult,
+        incidentResult,
+        maintenanceResult,
+        jobResult,
+        jobEventResult,
+        trackingSummaryResult,
+        existingInsightResult,
+      ]) {
+        if (result.error) throw result.error;
+      }
+
+      const existingDedupeKeys = new Set(
+        ((existingInsightResult.data ?? []) as Array<{ evidence?: Record<string, unknown> }>)
+          .map((row) => row.evidence?.dedupe_key)
+          .filter((value): value is string => typeof value === "string"),
+      );
+
+      const generated = generateDeterministicBrainInsights({
+        companyId: activeCompanyId,
+        now: new Date(),
+        documentExpiryWarningDays: activeCompany.document_expiry_warning_days ?? 30,
+        documents: (documentResult.data ?? []) as BrainDocumentInput[],
+        routeBaselines: (routeBaselineResult.data ?? []) as BrainRouteBaselineInput[],
+        routeRecords: (routeRecordResult.data ?? []) as BrainRouteRecordInput[],
+        incidents: (incidentResult.data ?? []) as BrainIncidentInput[],
+        maintenance: (maintenanceResult.data ?? []) as BrainMaintenanceInput[],
+        jobs: (jobResult.data ?? []) as BrainJobInput[],
+        jobEvents: (jobEventResult.data ?? []) as BrainJobEventInput[],
+        trackingSummaries: (trackingSummaryResult.data ?? []) as BrainTrackingSummaryInput[],
+        existingDedupeKeys,
+      });
+
+      if (generated.length > 0) {
+        const insightInsert = await brainDb()
+          .from("zapp_brain_insights")
+          .insert(
+            generated.map(({ dedupeKey: _dedupeKey, ...insight }) => ({
+              ...insight,
+              run_id: runId,
+            })),
+          );
+        if (insightInsert.error) throw insightInsert.error;
+      }
+
+      const learningInsert = await brainDb()
+        .from("zapp_brain_learning_records")
+        .insert({
+          company_id: activeCompanyId,
+          learning_type: "review_note",
+          label: "deterministic_v0_run",
+          payload: {
+            generated_count: generated.length,
+            skipped_existing_count: existingDedupeKeys.size,
+            advisory_only: true,
+          },
+        });
+      if (learningInsert.error) throw learningInsert.error;
+
+      const runUpdate = await brainDb()
+        .from("zapp_brain_runs")
+        .update({
+          status: "processed",
+          output_summary: {
+            generated_count: generated.length,
+            advisory_only: true,
+            source: "deterministic_v0",
+          },
+        })
+        .eq("id", runId)
+        .eq("company_id", activeCompanyId);
+      if (runUpdate.error) throw runUpdate.error;
+      setLastGeneratedCount(generated.length);
+      await load();
+    } catch (err) {
+      await brainDb()
+        .from("zapp_brain_runs")
+        .update({
+          status: "failed",
+          error_message: err instanceof Error ? err.message : "Deterministic analysis failed",
+        })
+        .eq("id", runId)
+        .eq("company_id", activeCompanyId);
+      setError(err instanceof Error ? err.message : "Could not run deterministic analysis");
+    } finally {
+      setRunningAnalysis(false);
+    }
+  };
+
   if (!canRead) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
@@ -212,18 +393,43 @@ function BrainPage() {
           </div>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Zapp Brain</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            Review stored insights from the future Zapp Brain pipeline. This shell displays
-            evidence, recommendations, and human feedback only; it does not run AI, predict
-            outcomes, or control dispatch.
+            Review advisory insights from stored ZappOS data. Deterministic v0 analysis does not run
+            AI, predict outcomes, control dispatch, edit jobs, or automate driver discipline.
+            Recommendations require human review before action.
           </p>
         </div>
-        <Card className="min-w-44 p-4">
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Urgent open
-          </div>
-          <div className="mt-1 text-3xl font-semibold">{openUrgentCount}</div>
-        </Card>
+        <div className="flex flex-wrap gap-3">
+          {canReview ? (
+            <Button onClick={() => void runAnalysis()} disabled={runningAnalysis} className="gap-2">
+              <PlayCircle className="h-4 w-4" />
+              {runningAnalysis ? "Running analysis" : "Run Brain Analysis"}
+            </Button>
+          ) : null}
+          <Card className="min-w-44 p-4">
+            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Urgent open
+            </div>
+            <div className="mt-1 text-3xl font-semibold">{openUrgentCount}</div>
+          </Card>
+        </div>
       </div>
+
+      <Card className="p-4">
+        <div className="grid gap-3 text-sm sm:grid-cols-3">
+          <Field label="Last run" value={lastRun ? formatDate(lastRun.created_at) : "-"} />
+          <Field label="Run status" value={lastRun?.status ? label(lastRun.status) : "-"} />
+          <Field
+            label="Generated insights"
+            value={
+              lastGeneratedCount != null
+                ? String(lastGeneratedCount)
+                : typeof lastRun?.output_summary?.generated_count === "number"
+                  ? String(lastRun.output_summary.generated_count)
+                  : "-"
+            }
+          />
+        </div>
+      </Card>
 
       {error ? <ErrorState title="Zapp Brain unavailable" description={error} /> : null}
 
@@ -461,5 +667,14 @@ function DetailSection({
       </div>
       {children}
     </section>
+  );
+}
+
+function Field({ label: fieldLabel, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs text-muted-foreground">{fieldLabel}</p>
+      <p className="mt-0.5 truncate font-medium">{value}</p>
+    </div>
   );
 }

@@ -1,4 +1,5 @@
 export * from "./types";
+export * from "./deterministic-v0";
 
 import {
   ZAPP_BRAIN_CATEGORIES,
