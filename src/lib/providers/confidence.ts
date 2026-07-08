@@ -51,7 +51,7 @@ export function confidenceFromProviderFreshness(input: ProviderConfidenceInput):
   if (!Number.isFinite(retrievedAgeMs)) {
     return { level: "insufficient_data", reasons: ["Provider timestamp is unavailable"] };
   }
-  if (input.expiresAt && Date.parse(input.expiresAt) < now.getTime()) {
+  if (input.expiresAt && Date.parse(input.expiresAt) <= now.getTime()) {
     return { level: "low", reasons: ["Provider observation has expired"] };
   }
   if (retrievedAgeMs <= 5 * 60 * 1000) {

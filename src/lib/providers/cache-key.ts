@@ -12,7 +12,21 @@ export const TRAFFIC_CELL_PRECISION = 3;
 
 function roundToCell(value: number, precision: number) {
   const factor = 10 ** precision;
-  return Math.round(value * factor) / factor;
+  const rounded = Math.round(value * factor) / factor;
+  return Object.is(rounded, -0) ? 0 : rounded;
+}
+
+function assertValidCoordinate(latitude: number, longitude: number) {
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    throw new Error("Invalid geographic coordinates");
+  }
 }
 
 export function createGeographicCacheKey(
@@ -21,6 +35,7 @@ export function createGeographicCacheKey(
   longitude: number,
   precision = providerType === "weather" ? WEATHER_CELL_PRECISION : TRAFFIC_CELL_PRECISION,
 ): GeographicCacheKey {
+  assertValidCoordinate(latitude, longitude);
   const latitudeCell = roundToCell(latitude, precision);
   const longitudeCell = roundToCell(longitude, precision);
   const geographicCell = `${latitudeCell.toFixed(precision)},${longitudeCell.toFixed(precision)}`;

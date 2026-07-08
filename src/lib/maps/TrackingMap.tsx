@@ -22,6 +22,7 @@ export function TrackingMap({
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     if (!containerRef.current) return;
     const provider = new MapLibreProvider();
     providerRef.current = provider;
@@ -30,6 +31,7 @@ export function TrackingMap({
         styleUrl: DEFAULT_STYLE,
         center: [-98.5795, 39.8283],
         zoom: 3,
+        signal: controller.signal,
       })
       .then(() => {
         if (cancelled) return;
@@ -41,6 +43,7 @@ export function TrackingMap({
 
     return () => {
       cancelled = true;
+      controller.abort();
       provider.destroy();
       providerRef.current = null;
     };

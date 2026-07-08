@@ -1,6 +1,7 @@
 import { createGeographicCacheKey } from "./cache-key";
 import { getCachedProviderObservation, PROVIDER_TTLS } from "./cache";
 import { confidenceFromProviderFreshness } from "./confidence";
+import { supabase } from "@/integrations/supabase/client";
 import type { CongestionState, ProviderResult, TrafficObservation, TrafficProvider } from "./types";
 
 interface TomTomFlowPayload {
@@ -27,15 +28,19 @@ export function congestionStateFromRatio(ratio: number | null): CongestionState 
 export function normalizeTomTomTraffic(
   payload: TomTomFlowPayload,
 ): Omit<TrafficObservation, "metadata"> {
-  const current = payload.flowSegmentData?.currentSpeed ?? null;
-  const free = payload.flowSegmentData?.freeFlowSpeed ?? null;
-  const ratio = current !== null && free !== null && free > 0 ? current / free : null;
+  const current = normalizeSpeed(payload.flowSegmentData?.currentSpeed);
+  const free = normalizeSpeed(payload.flowSegmentData?.freeFlowSpeed);
+  const ratio = current !== null && free !== null && free > 0 ? Math.min(1, current / free) : null;
   return {
     currentFlowSpeedKph: current,
     freeFlowSpeedKph: free,
     congestionRatio: ratio,
     congestionState: congestionStateFromRatio(ratio),
   };
+}
+
+function normalizeSpeed(value: number | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
 export class DisabledTrafficProvider implements TrafficProvider {
@@ -52,6 +57,7 @@ export class TomTomTrafficProvider implements TrafficProvider {
   async getTrafficNearLocation(input: {
     latitude: number;
     longitude: number;
+    companyId?: string | null;
   }): Promise<ProviderResult<TrafficObservation>> {
     const key = createGeographicCacheKey("traffic", input.latitude, input.longitude);
     try {
@@ -63,16 +69,29 @@ export class TomTomTrafficProvider implements TrafficProvider {
         ttlMs: PROVIDER_TTLS.trafficMs,
         fetcher: async () => {
           const retrievedAt = new Date().toISOString();
-          const response = await fetch(
-            `/api/providers/tomtom-flow?lat=${encodeURIComponent(input.latitude)}&lng=${encodeURIComponent(input.longitude)}`,
-          );
-          if (!response.ok) throw new Error(`TomTom proxy returned ${response.status}`);
-          const data = (await response.json()) as TomTomFlowPayload;
-          if (data.unavailableReason) throw new Error(data.unavailableReason);
+          if (!input.companyId) throw new Error("Traffic company context unavailable");
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData.session?.access_token;
+          if (!token) throw new Error("Traffic authentication unavailable");
+          const params = new URLSearchParams({
+            lat: String(input.latitude),
+            lng: String(input.longitude),
+            company_id: input.companyId,
+          });
+          const response = await fetch(`/api/providers/tomtom-flow?${params.toString()}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!response.ok) {
+            throw new Error(
+              response.status === 401 ? "Traffic authorization unavailable" : "Traffic unavailable",
+            );
+          }
+          const providerPayload = (await response.json()) as TomTomFlowPayload;
+          if (providerPayload.unavailableReason) throw new Error(providerPayload.unavailableReason);
           return {
-            payload: normalizeTomTomTraffic(data),
+            payload: normalizeTomTomTraffic(providerPayload),
             observedAt: null,
-            retrievedAt: data.retrievedAt ?? retrievedAt,
+            retrievedAt: providerPayload.retrievedAt ?? retrievedAt,
             confidence: "medium",
             source: "TomTom Traffic Flow API",
           };

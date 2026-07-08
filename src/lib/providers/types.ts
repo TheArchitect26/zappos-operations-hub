@@ -59,6 +59,7 @@ export interface TrafficProvider {
   getTrafficNearLocation(input: {
     latitude: number;
     longitude: number;
+    companyId?: string | null;
   }): Promise<ProviderResult<TrafficObservation>>;
 }
 

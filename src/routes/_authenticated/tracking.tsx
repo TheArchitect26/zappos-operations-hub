@@ -19,7 +19,10 @@ import { telemetryFrom } from "@/lib/telemetry/supabase-boundary";
 import { TrackingMap } from "@/lib/maps/TrackingMap";
 import type { ObservedTraceLine, VehicleMarker } from "@/lib/maps/types";
 import { buildObservedTrace } from "@/lib/route-intelligence/trace";
-import { calculateRouteIntelligence } from "@/lib/route-intelligence/intelligence";
+import {
+  calculateRouteIntelligence,
+  estimateStopCountFromTelemetry,
+} from "@/lib/route-intelligence/intelligence";
 import { OpenMeteoProvider } from "@/lib/providers/weather";
 import { TomTomTrafficProvider } from "@/lib/providers/traffic";
 import type { TrafficObservation, WeatherObservation } from "@/lib/providers/types";
@@ -281,47 +284,67 @@ function TrackingPage() {
       setTracePoints([]);
       return;
     }
+    let cancelled = false;
+    const sessionId = selectedSession.id;
+    setSummary(null);
+    setTracePoints([]);
     const run = async () => {
       const [summaryResult, traceResult] = await Promise.all([
         telemetryFrom<SummaryRow>("tracking_summaries")
           .select("*")
-          .eq("tracking_session_id", selectedSession.id)
+          .eq("tracking_session_id", sessionId)
           .maybeSingle(),
         telemetryFrom<PointRow>("tracking_telemetry_points")
           .select(
             "latitude, longitude, device_timestamp, sequence_number, quality_status, quality_flags, movement_state",
           )
-          .eq("tracking_session_id", selectedSession.id)
+          .eq("tracking_session_id", sessionId)
           .in("quality_status", ["high", "acceptable", "poor"])
           .order("device_timestamp", { ascending: true })
           .limit(1000),
       ]);
+      if (cancelled) return;
       if (!summaryResult.error) setSummary((summaryResult.data as SummaryRow | null) ?? null);
       if (!traceResult.error) setTracePoints((traceResult.data ?? []) as PointRow[]);
     };
     void run();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedSession]);
 
   useEffect(() => {
     if (!selectedLocation) {
       setWeather(null);
       setTraffic(null);
+      setWeatherError(null);
+      setTrafficError(null);
       return;
     }
+    let cancelled = false;
+    const location = selectedLocation;
+    setWeather(null);
+    setTraffic(null);
+    setWeatherError(null);
+    setTrafficError(null);
     const run = async () => {
       const weatherProvider = new OpenMeteoProvider();
       const trafficProvider = new TomTomTrafficProvider();
       const [weatherResult, trafficResult] = await Promise.all([
-        weatherProvider.getWeatherNearLocation(selectedLocation),
-        trafficProvider.getTrafficNearLocation(selectedLocation),
+        weatherProvider.getWeatherNearLocation(location),
+        trafficProvider.getTrafficNearLocation({ ...location, companyId: activeCompanyId }),
       ]);
+      if (cancelled) return;
       setWeather(weatherResult.observation);
       setWeatherError(weatherResult.unavailableReason);
       setTraffic(trafficResult.observation);
       setTrafficError(trafficResult.unavailableReason);
     };
     void run();
-  }, [selectedLocation]);
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCompanyId, selectedLocation]);
 
   const activeSessions = sessions.filter((session) =>
     ["pending", "active", "paused", "degraded"].includes(session.status),
@@ -392,8 +415,7 @@ function TrackingPage() {
         point.quality_flags?.includes("DELAYED_UPLOAD"),
       ).length,
       latestTelemetryAt: selectedSession?.last_telemetry_at,
-      stationarySegmentCount: tracePoints.filter((point) => point.movement_state === "stationary")
-        .length,
+      stationarySegmentCount: estimateStopCountFromTelemetry(tracePoints),
     });
   }, [selectedSession?.last_telemetry_at, summary, tracePoints]);
 

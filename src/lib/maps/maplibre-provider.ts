@@ -13,10 +13,11 @@ export class MapLibreProvider implements ZappMapProvider {
 
   async initialize(
     container: HTMLElement,
-    options: { styleUrl: string; center: [number, number]; zoom: number },
+    options: { styleUrl: string; center: [number, number]; zoom: number; signal?: AbortSignal },
   ) {
     if (this.map) return;
     this.maplibre = await import("maplibre-gl");
+    if (options.signal?.aborted) return;
     this.map = new this.maplibre.Map({
       container,
       style: options.styleUrl,
@@ -31,6 +32,7 @@ export class MapLibreProvider implements ZappMapProvider {
     await new Promise<void>((resolve) => {
       this.map?.once("load", () => resolve());
     });
+    if (options.signal?.aborted) this.destroy();
   }
 
   destroy() {

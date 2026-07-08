@@ -25,7 +25,7 @@ export function conditionFromOpenMeteoCode(code: number | null) {
   if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "Rain";
   if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
   if ([95, 96, 99].includes(code)) return "Thunderstorm";
-  return `Weather code ${code}`;
+  return null;
 }
 
 export function normalizeOpenMeteoWeather(

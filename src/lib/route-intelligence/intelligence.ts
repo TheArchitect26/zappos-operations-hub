@@ -1,5 +1,18 @@
 import { confidenceFromTelemetry, type TelemetryConfidenceInput } from "@/lib/providers/confidence";
 
+const ROUTE_QUALITY_WEIGHTS = {
+  acceptedRatio: 45,
+  nonRejectedRatio: 20,
+  nonPoorRatio: 15,
+  freshUploadRatio: 10,
+  density: 10,
+} as const;
+
+const WEAK_SAMPLE_MAX_SCORE = 30;
+const TINY_SAMPLE_MAX_SCORE = 60;
+const MIN_STOP_DURATION_SECONDS = 120;
+const MIN_STOP_POINTS = 2;
+
 export interface RouteIntelligenceInput extends TelemetryConfidenceInput {
   observedDistanceMeters: number;
   totalDurationSeconds: number;
@@ -27,9 +40,59 @@ export interface RouteIntelligenceBaseline {
   dataConfidence: ReturnType<typeof confidenceFromTelemetry>;
 }
 
+export interface StopHeuristicPoint {
+  device_timestamp: string;
+  sequence_number: number;
+  movement_state: string;
+  quality_status: string;
+}
+
 function percentage(numerator: number, denominator: number) {
   if (denominator <= 0) return 0;
   return Math.max(0, Math.min(100, (numerator / denominator) * 100));
+}
+
+export function estimateStopCountFromTelemetry(points: StopHeuristicPoint[]) {
+  const ordered = points
+    .filter((point) => point.quality_status !== "rejected")
+    .slice()
+    .sort((a, b) => {
+      const timeDiff = Date.parse(a.device_timestamp) - Date.parse(b.device_timestamp);
+      return timeDiff !== 0 ? timeDiff : a.sequence_number - b.sequence_number;
+    });
+
+  let stops = 0;
+  let candidateStart: number | null = null;
+  let candidateEnd: number | null = null;
+  let candidatePoints = 0;
+
+  const finalize = () => {
+    if (
+      candidateStart !== null &&
+      candidateEnd !== null &&
+      candidatePoints >= MIN_STOP_POINTS &&
+      (candidateEnd - candidateStart) / 1000 >= MIN_STOP_DURATION_SECONDS
+    ) {
+      stops += 1;
+    }
+    candidateStart = null;
+    candidateEnd = null;
+    candidatePoints = 0;
+  };
+
+  for (const point of ordered) {
+    const timestamp = Date.parse(point.device_timestamp);
+    if (!Number.isFinite(timestamp)) continue;
+    if (point.movement_state === "stationary") {
+      candidateStart ??= timestamp;
+      candidateEnd = timestamp;
+      candidatePoints += 1;
+    } else if (point.movement_state === "moving") {
+      finalize();
+    }
+  }
+  finalize();
+  return stops;
 }
 
 export function calculateRouteQualityScore(input: RouteIntelligenceInput) {
@@ -46,12 +109,15 @@ export function calculateRouteQualityScore(input: RouteIntelligenceInput) {
         : 0;
 
   const score =
-    acceptedRatio * 45 +
-    (1 - rejectedRatio) * 20 +
-    (1 - poorRatio) * 15 +
-    (1 - delayedRatio) * 10 +
-    densityScore * 10;
-  return Math.round(Math.max(0, Math.min(100, score)));
+    acceptedRatio * ROUTE_QUALITY_WEIGHTS.acceptedRatio +
+    (1 - rejectedRatio) * ROUTE_QUALITY_WEIGHTS.nonRejectedRatio +
+    (1 - poorRatio) * ROUTE_QUALITY_WEIGHTS.nonPoorRatio +
+    (1 - delayedRatio) * ROUTE_QUALITY_WEIGHTS.freshUploadRatio +
+    densityScore * ROUTE_QUALITY_WEIGHTS.density;
+  const bounded = Math.round(Math.max(0, Math.min(100, score)));
+  if (input.acceptedPointCount < 2) return Math.min(WEAK_SAMPLE_MAX_SCORE, bounded);
+  if (input.acceptedPointCount < 5) return Math.min(TINY_SAMPLE_MAX_SCORE, bounded);
+  return bounded;
 }
 
 export function calculateRouteIntelligence(
@@ -62,11 +128,8 @@ export function calculateRouteIntelligence(
       ? Math.max(0, Math.min(1, input.stationaryDurationSeconds / input.totalDurationSeconds))
       : 0;
   const estimatedStopCount =
-    input.stationaryDurationSeconds >= 120 && input.acceptedPointCount >= 3
-      ? Math.max(
-          1,
-          input.stationarySegmentCount ?? Math.round(input.stationaryDurationSeconds / 300),
-        )
+    input.stationaryDurationSeconds >= MIN_STOP_DURATION_SECONDS && input.acceptedPointCount >= 3
+      ? (input.stationarySegmentCount ?? Math.round(input.stationaryDurationSeconds / 300))
       : 0;
 
   return {

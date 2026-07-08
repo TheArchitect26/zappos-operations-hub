@@ -27,7 +27,7 @@ export interface ZappMapProvider {
   capabilities: ZappMapProviderCapabilities;
   initialize(
     container: HTMLElement,
-    options: { styleUrl: string; center: [number, number]; zoom: number },
+    options: { styleUrl: string; center: [number, number]; zoom: number; signal?: AbortSignal },
   ): Promise<void>;
   destroy(): void;
   updateActiveVehicleMarkers(markers: VehicleMarker[], onSelect: (id: string) => void): void;
