@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedVehiclesRouteImport } from './routes/_authenticated/vehicles'
 import { Route as AuthenticatedTrackingRouteImport } from './routes/_authenticated/tracking'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedRouteIntelligenceRouteImport } from './routes/_authenticated/route-intelligence'
 import { Route as AuthenticatedOperationsRouteImport } from './routes/_authenticated/operations'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedMaintenanceRouteImport } from './routes/_authenticated/maintenance'
@@ -73,6 +74,12 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRouteIntelligenceRoute =
+  AuthenticatedRouteIntelligenceRouteImport.update({
+    id: '/route-intelligence',
+    path: '/route-intelligence',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOperationsRoute = AuthenticatedOperationsRouteImport.update({
   id: '/operations',
   path: '/operations',
@@ -142,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/maintenance': typeof AuthenticatedMaintenanceRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/operations': typeof AuthenticatedOperationsRoute
+  '/route-intelligence': typeof AuthenticatedRouteIntelligenceRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tracking': typeof AuthenticatedTrackingRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
@@ -162,6 +170,7 @@ export interface FileRoutesByTo {
   '/maintenance': typeof AuthenticatedMaintenanceRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/operations': typeof AuthenticatedOperationsRoute
+  '/route-intelligence': typeof AuthenticatedRouteIntelligenceRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tracking': typeof AuthenticatedTrackingRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
@@ -184,6 +193,7 @@ export interface FileRoutesById {
   '/_authenticated/maintenance': typeof AuthenticatedMaintenanceRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/operations': typeof AuthenticatedOperationsRoute
+  '/_authenticated/route-intelligence': typeof AuthenticatedRouteIntelligenceRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tracking': typeof AuthenticatedTrackingRoute
   '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/maintenance'
     | '/notifications'
     | '/operations'
+    | '/route-intelligence'
     | '/settings'
     | '/tracking'
     | '/vehicles'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
     | '/maintenance'
     | '/notifications'
     | '/operations'
+    | '/route-intelligence'
     | '/settings'
     | '/tracking'
     | '/vehicles'
@@ -247,6 +259,7 @@ export interface FileRouteTypes {
     | '/_authenticated/maintenance'
     | '/_authenticated/notifications'
     | '/_authenticated/operations'
+    | '/_authenticated/route-intelligence'
     | '/_authenticated/settings'
     | '/_authenticated/tracking'
     | '/_authenticated/vehicles'
@@ -324,6 +337,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/route-intelligence': {
+      id: '/_authenticated/route-intelligence'
+      path: '/route-intelligence'
+      fullPath: '/route-intelligence'
+      preLoaderRoute: typeof AuthenticatedRouteIntelligenceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/operations': {
@@ -410,6 +430,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMaintenanceRoute: typeof AuthenticatedMaintenanceRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedOperationsRoute: typeof AuthenticatedOperationsRoute
+  AuthenticatedRouteIntelligenceRoute: typeof AuthenticatedRouteIntelligenceRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTrackingRoute: typeof AuthenticatedTrackingRoute
   AuthenticatedVehiclesRoute: typeof AuthenticatedVehiclesRoute
@@ -426,6 +447,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMaintenanceRoute: AuthenticatedMaintenanceRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedOperationsRoute: AuthenticatedOperationsRoute,
+  AuthenticatedRouteIntelligenceRoute: AuthenticatedRouteIntelligenceRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTrackingRoute: AuthenticatedTrackingRoute,
   AuthenticatedVehiclesRoute: AuthenticatedVehiclesRoute,
