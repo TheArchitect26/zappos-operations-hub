@@ -167,7 +167,12 @@ export function hasMandatoryChecklistGaps(steps: ChecklistStepInput[]) {
 }
 
 export function hasBlockingCriticalTests(tests: FitmentTestInput[]) {
-  return tests.some((test) => test.critical && test.result === "failed" && !test.overrideReason);
+  return tests.some(
+    (test) =>
+      test.critical &&
+      (test.result === "failed" || test.result === "warning") &&
+      !test.overrideReason,
+  );
 }
 
 export function isPhysicalVerificationSource(source: TestSource | RoadTestSource) {
@@ -211,6 +216,13 @@ export function validateCompletion(input: CompletionInput) {
   if (hasBlockingCriticalTests(input.tests)) issues.push("Critical tests have unresolved failures");
   if (input.roadTest?.source === "simulated_validation" && input.roadTest.result === "passed") {
     issues.push("Simulated road test cannot prove physical fitment");
+  }
+  if (
+    !input.roadTest ||
+    input.roadTest.source !== "manual_field_test" ||
+    input.roadTest.result !== "passed"
+  ) {
+    issues.push("Passed manual field road test is required");
   }
   if (hasActiveDeviceVehicleConflict(input.deviceAssignments, input.nextDeviceAssignment)) {
     issues.push("Device already has an active vehicle assignment");
@@ -306,6 +318,32 @@ export function validateSandboxMarker(input: {
     /(?:490154203237518|8945001234567890123)/.test(input.identifier)
   ) {
     issues.push("Sandbox records must use fictional identifiers");
+  }
+  return { ok: issues.length === 0, issues };
+}
+
+export function validateEvidencePath(input: {
+  companyId: string;
+  fitmentJobId: string;
+  storageBucket: string;
+  storagePath: string;
+}) {
+  const issues: string[] = [];
+  if (input.storageBucket !== "fitment-evidence") issues.push("Invalid evidence bucket");
+  if (!input.storagePath.startsWith(`${input.companyId}/${input.fitmentJobId}/`)) {
+    issues.push("Evidence path must be scoped to company and fitment job");
+  }
+  return { ok: issues.length === 0, issues };
+}
+
+export function validateCompanyLink(input: {
+  parentCompanyId: string;
+  linkedCompanyId?: string | null;
+  relationship: string;
+}) {
+  const issues: string[] = [];
+  if (input.linkedCompanyId && input.linkedCompanyId !== input.parentCompanyId) {
+    issues.push(`${input.relationship} must belong to the same company`);
   }
   return { ok: issues.length === 0, issues };
 }

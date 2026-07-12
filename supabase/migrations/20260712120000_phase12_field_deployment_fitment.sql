@@ -496,6 +496,12 @@ BEGIN
   IF NEW.source IN ('simulated','future_device_reported','device_reported_future') AND NEW.result = 'passed' THEN
     NEW.metadata := NEW.metadata || jsonb_build_object('truth_label', 'SIMULATED or future-reported validation is not physical field verification');
   END IF;
+  IF NEW.measured_value IS NOT NULL AND (NEW.measured_value::text IN ('NaN','Infinity','-Infinity')) THEN
+    RAISE EXCEPTION 'Measured value must be finite';
+  END IF;
+  IF NEW.test_category = 'power' AND NEW.measured_value IS NOT NULL AND (NEW.measured_value < 0 OR NEW.measured_value > 60) THEN
+    RAISE EXCEPTION 'Power measurement is outside supported manual field range';
+  END IF;
   NEW.technician_user_id := COALESCE(NEW.technician_user_id, auth.uid());
   RETURN NEW;
 END;
@@ -507,13 +513,171 @@ CREATE TRIGGER fitment_test_results_validate
   FOR EACH ROW EXECUTE FUNCTION public.validate_fitment_test_result();
 
 CREATE OR REPLACE FUNCTION public.complete_device_fitment_job(_company_id UUID, _fitment_job_id UUID)
-RETURNS public.device_fitment_jobs
+RETURNS public.device_vehicle_assignments
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
 BEGIN
   RAISE EXCEPTION 'complete_device_fitment_job is not initialized';
 END;
 $$;
+
+CREATE OR REPLACE FUNCTION public.validate_fitment_road_test()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  _job public.device_fitment_jobs%ROWTYPE;
+BEGIN
+  SELECT * INTO _job FROM public.device_fitment_jobs WHERE id = NEW.fitment_job_id AND company_id = NEW.company_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Fitment job not found'; END IF;
+  IF auth.uid() IS NULL OR NOT (
+    public.has_any_role(NEW.company_id, ARRAY['admin','fleet_manager']::public.app_role[])
+    OR _job.technician_user_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Not authorized to record road test';
+  END IF;
+  IF NEW.source = 'simulated_validation' AND NEW.result = 'passed' THEN
+    RAISE EXCEPTION 'Simulated validation cannot pass a physical road test';
+  END IF;
+  IF NEW.ended_at IS NOT NULL AND NEW.started_at IS NOT NULL AND NEW.ended_at < NEW.started_at THEN
+    RAISE EXCEPTION 'Road test end time cannot precede start time';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS fitment_road_tests_validate ON public.fitment_road_tests;
+CREATE TRIGGER fitment_road_tests_validate
+  BEFORE INSERT OR UPDATE ON public.fitment_road_tests
+  FOR EACH ROW EXECUTE FUNCTION public.validate_fitment_road_test();
+
+CREATE OR REPLACE FUNCTION public.validate_fitment_evidence()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.device_fitment_jobs WHERE id = NEW.fitment_job_id AND company_id = NEW.company_id) THEN
+    RAISE EXCEPTION 'Fitment job not found for evidence';
+  END IF;
+  IF NEW.storage_bucket <> 'fitment-evidence' THEN RAISE EXCEPTION 'Invalid evidence bucket'; END IF;
+  IF NEW.storage_path NOT LIKE NEW.company_id::text || '/' || NEW.fitment_job_id::text || '/%' THEN
+    RAISE EXCEPTION 'Evidence path must be company and fitment job scoped';
+  END IF;
+  NEW.uploaded_by := COALESCE(NEW.uploaded_by, auth.uid());
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS fitment_evidence_validate ON public.fitment_evidence;
+CREATE TRIGGER fitment_evidence_validate
+  BEFORE INSERT ON public.fitment_evidence
+  FOR EACH ROW EXECUTE FUNCTION public.validate_fitment_evidence();
+
+CREATE OR REPLACE FUNCTION public.validate_field_inventory_movement()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_any_role(NEW.company_id, ARRAY['admin','fleet_manager']::public.app_role[]) THEN
+    RAISE EXCEPTION 'Not authorized to move field inventory';
+  END IF;
+  IF NEW.asset_type = 'device' AND NOT EXISTS (SELECT 1 FROM public.devices WHERE id = NEW.asset_id AND company_id = NEW.company_id) THEN
+    RAISE EXCEPTION 'Inventory device does not belong to company';
+  END IF;
+  IF NEW.asset_type = 'sim' AND NOT EXISTS (SELECT 1 FROM public.device_sims WHERE id = NEW.asset_id AND company_id = NEW.company_id) THEN
+    RAISE EXCEPTION 'Inventory SIM does not belong to company';
+  END IF;
+  IF NEW.fitment_job_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.device_fitment_jobs WHERE id = NEW.fitment_job_id AND company_id = NEW.company_id) THEN
+    RAISE EXCEPTION 'Inventory movement job does not belong to company';
+  END IF;
+  NEW.actor_user_id := auth.uid();
+  NEW.actor_role := public.current_company_role(NEW.company_id);
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS field_inventory_movements_validate ON public.field_inventory_movements;
+CREATE TRIGGER field_inventory_movements_validate
+  BEFORE INSERT ON public.field_inventory_movements
+  FOR EACH ROW EXECUTE FUNCTION public.validate_field_inventory_movement();
+
+CREATE OR REPLACE FUNCTION public.validate_firmware_rollout_plan()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.device_firmware_versions WHERE id = NEW.firmware_version_id AND company_id = NEW.company_id) THEN
+    RAISE EXCEPTION 'Rollout firmware does not belong to company';
+  END IF;
+  IF NEW.rollback_version_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.device_firmware_versions WHERE id = NEW.rollback_version_id AND company_id = NEW.company_id) THEN
+    RAISE EXCEPTION 'Rollback firmware does not belong to company';
+  END IF;
+  IF NEW.status IN ('approved','scheduled') THEN
+    IF public.current_company_role(NEW.company_id) NOT IN ('admin','fleet_manager') THEN
+      RAISE EXCEPTION 'Not authorized to approve rollout plans';
+    END IF;
+    NEW.approved_by := COALESCE(NEW.approved_by, auth.uid());
+    NEW.approved_at := COALESCE(NEW.approved_at, now());
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS firmware_rollout_plans_validate ON public.firmware_rollout_plans;
+CREATE TRIGGER firmware_rollout_plans_validate
+  BEFORE INSERT OR UPDATE ON public.firmware_rollout_plans
+  FOR EACH ROW EXECUTE FUNCTION public.validate_firmware_rollout_plan();
+
+CREATE OR REPLACE FUNCTION public.validate_firmware_rollout_plan_device()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  _plan public.firmware_rollout_plans%ROWTYPE;
+  _firmware public.device_firmware_versions%ROWTYPE;
+  _device public.devices%ROWTYPE;
+BEGIN
+  SELECT * INTO _plan FROM public.firmware_rollout_plans WHERE id = NEW.rollout_plan_id AND company_id = NEW.company_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Rollout plan does not belong to company'; END IF;
+  SELECT * INTO _firmware FROM public.device_firmware_versions WHERE id = _plan.firmware_version_id AND company_id = NEW.company_id;
+  IF NOT FOUND OR _firmware.status <> 'approved' THEN RAISE EXCEPTION 'Rollout firmware must be approved and company scoped'; END IF;
+  SELECT * INTO _device FROM public.devices WHERE id = NEW.device_id AND company_id = NEW.company_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Rollout device does not belong to company'; END IF;
+  IF _device.hardware_model_normalized <> _firmware.hardware_model_normalized THEN
+    RAISE EXCEPTION 'Device hardware model is not compatible with rollout firmware';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS firmware_rollout_plan_devices_validate ON public.firmware_rollout_plan_devices;
+CREATE TRIGGER firmware_rollout_plan_devices_validate
+  BEFORE INSERT ON public.firmware_rollout_plan_devices
+  FOR EACH ROW EXECUTE FUNCTION public.validate_firmware_rollout_plan_device();
+
+CREATE OR REPLACE FUNCTION public.validate_field_support_case()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF NEW.device_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.devices WHERE id = NEW.device_id AND company_id = NEW.company_id) THEN
+    RAISE EXCEPTION 'Support case device does not belong to company';
+  END IF;
+  IF NEW.vehicle_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.vehicles WHERE id = NEW.vehicle_id AND company_id = NEW.company_id) THEN
+    RAISE EXCEPTION 'Support case vehicle does not belong to company';
+  END IF;
+  IF NEW.fitment_job_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.device_fitment_jobs WHERE id = NEW.fitment_job_id AND company_id = NEW.company_id) THEN
+    RAISE EXCEPTION 'Support case fitment job does not belong to company';
+  END IF;
+  NEW.created_by := COALESCE(NEW.created_by, auth.uid());
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS field_support_cases_validate ON public.field_support_cases;
+CREATE TRIGGER field_support_cases_validate
+  BEFORE INSERT OR UPDATE ON public.field_support_cases
+  FOR EACH ROW EXECUTE FUNCTION public.validate_field_support_case();
 
 CREATE OR REPLACE FUNCTION public.transition_device_fitment_job(
   _company_id UUID,
@@ -576,7 +740,7 @@ BEGIN
     SELECT 1 FROM public.fitment_test_results
     WHERE fitment_job_id = _job.id
       AND critical
-      AND result = 'failed'
+      AND result IN ('failed','warning')
       AND NULLIF(override_reason, '') IS NULL
   ) INTO _has_unresolved_critical;
 
@@ -627,11 +791,61 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
 DECLARE
   _job public.device_fitment_jobs%ROWTYPE;
+  _device public.devices%ROWTYPE;
+  _sim public.device_sims%ROWTYPE;
   _assignment public.device_vehicle_assignments%ROWTYPE;
+  _firmware_ok BOOLEAN;
 BEGIN
   SELECT * INTO _job FROM public.device_fitment_jobs WHERE id = _fitment_job_id AND company_id = _company_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Fitment job not found'; END IF;
   IF _job.status <> 'completed' THEN RAISE EXCEPTION 'Fitment must be completed through approved transition'; END IF;
+  SELECT * INTO _device FROM public.devices WHERE id = _job.device_id AND company_id = _company_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Device does not belong to company'; END IF;
+  IF _device.device_type = 'SIMULATOR' OR _device.simulated THEN RAISE EXCEPTION 'Simulator device cannot complete physical fitment'; END IF;
+  IF _device.status IN ('blocked','retired') OR _device.inventory_state IN ('faulty','quarantined','retired') THEN
+    RAISE EXCEPTION 'Device is not eligible for physical activation';
+  END IF;
+  IF _job.sim_id IS NOT NULL THEN
+    SELECT * INTO _sim FROM public.device_sims WHERE id = _job.sim_id AND company_id = _company_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'SIM does not belong to company'; END IF;
+    IF _sim.status IN ('suspended','inactive','retired') OR _sim.inventory_state IN ('faulty','quarantined','retired') THEN
+      RAISE EXCEPTION 'SIM is not eligible for physical activation';
+    END IF;
+    IF _sim.assigned_device_id IS NOT NULL AND _sim.assigned_device_id <> _job.device_id THEN
+      RAISE EXCEPTION 'SIM is already assigned to another device';
+    END IF;
+  END IF;
+  SELECT EXISTS (
+    SELECT 1 FROM public.device_firmware_versions fw
+    WHERE fw.company_id = _company_id
+      AND fw.version = _device.firmware_version
+      AND fw.hardware_model_normalized = _device.hardware_model_normalized
+      AND fw.status = 'approved'
+  ) INTO _firmware_ok;
+  IF NOT _firmware_ok THEN RAISE EXCEPTION 'Approved compatible firmware is required before fitment completion'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.fitment_job_checklist_steps
+    WHERE fitment_job_id = _job.id
+      AND mandatory
+      AND (status IN ('pending','failed','blocked') OR (status = 'not_applicable' AND NULLIF(override_reason, '') IS NULL))
+  ) THEN
+    RAISE EXCEPTION 'Mandatory checklist has unresolved gaps';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.fitment_test_results
+    WHERE fitment_job_id = _job.id
+      AND critical
+      AND result IN ('failed','warning')
+      AND NULLIF(override_reason, '') IS NULL
+  ) THEN
+    RAISE EXCEPTION 'Critical tests have unresolved failures or warnings';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.fitment_road_tests
+    WHERE fitment_job_id = _job.id AND result = 'passed' AND source = 'manual_field_test'
+  ) THEN
+    RAISE EXCEPTION 'A passed manual field road test is required for physical completion';
+  END IF;
   IF EXISTS (
     SELECT 1 FROM public.fitment_road_tests
     WHERE fitment_job_id = _job.id AND result = 'passed' AND source = 'simulated_validation'
@@ -669,6 +883,18 @@ REVOKE ALL ON FUNCTION public.transition_device_fitment_job(uuid, uuid, public.f
 GRANT EXECUTE ON FUNCTION public.transition_device_fitment_job(uuid, uuid, public.fitment_job_status, text, text) TO authenticated;
 REVOKE ALL ON FUNCTION public.complete_device_fitment_job(uuid, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.complete_device_fitment_job(uuid, uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.complete_device_fitment_job(uuid, uuid) FROM authenticated;
+REVOKE ALL ON FUNCTION public.validate_fitment_job_entities() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.prevent_direct_fitment_status_update() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.instantiate_fitment_checklist() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.validate_fitment_step_update() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.validate_fitment_test_result() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.validate_fitment_road_test() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.validate_fitment_evidence() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.validate_field_inventory_movement() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.validate_firmware_rollout_plan() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.validate_firmware_rollout_plan_device() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.validate_field_support_case() FROM PUBLIC, anon, authenticated;
 
 DROP TRIGGER IF EXISTS field_audit_ledger_immutable ON public.field_audit_ledger;
 CREATE TRIGGER field_audit_ledger_immutable

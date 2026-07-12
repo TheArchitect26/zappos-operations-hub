@@ -8,6 +8,8 @@ import {
   rolloutTruthLabel,
   supportDiagnosticCopy,
   validateCompletion,
+  validateCompanyLink,
+  validateEvidencePath,
   validateFitmentTransition,
   validateInventoryReservation,
   validateRoadTestTruthfulness,
@@ -87,6 +89,7 @@ describe("phase 12 fitment lifecycle", () => {
     const criticalFailures: FitmentTestInput[] = [
       { category: "power", result: "failed", source: "manual_measurement", critical: true },
       { category: "ignition", result: "failed", source: "manual", critical: true },
+      { category: "power", result: "warning", source: "manual_measurement", critical: true },
     ];
     expect(hasBlockingCriticalTests(criticalFailures)).toBe(true);
     expect(
@@ -129,6 +132,7 @@ describe("phase 12 completion and assignment integrity", () => {
     expect(result.issues).toContain("Device already has an active vehicle assignment");
     expect(result.issues).toContain("SIM already has an active device assignment");
     expect(result.issues).toContain("Simulated road test cannot prove physical fitment");
+    expect(result.issues).toContain("Passed manual field road test is required");
   });
 
   it("detects vehicle primary-device conflicts and firmware incompatibility", () => {
@@ -138,6 +142,7 @@ describe("phase 12 completion and assignment integrity", () => {
       firmwareCompatible: false,
       checklist: passedChecklist,
       tests: [],
+      roadTest: { result: "passed", source: "manual_field_test" },
       deviceAssignments: [existingDeviceAssignment],
       nextDeviceAssignment: { ...existingDeviceAssignment, deviceId: "device-2" },
       simAssignments: [],
@@ -162,6 +167,26 @@ describe("phase 12 completion and assignment integrity", () => {
         currentState: "quarantined",
       }).issues,
     ).toContain("Asset state is not available for reservation");
+  });
+
+  it("requires a passed manual road test for completion", () => {
+    const result = validateCompletion({
+      approved: true,
+      deviceSimulated: false,
+      firmwareCompatible: true,
+      checklist: passedChecklist,
+      tests: [],
+      roadTest: { result: "failed", source: "manual_field_test" },
+      deviceAssignments: [],
+      nextDeviceAssignment: {
+        deviceId: "device-1",
+        vehicleId: "vehicle-1",
+        assignmentType: "primary",
+        status: "active",
+      },
+      simAssignments: [],
+    });
+    expect(result.issues).toContain("Passed manual field road test is required");
   });
 });
 
@@ -222,5 +247,31 @@ describe("phase 12 truthfulness and planning guards", () => {
     expect(
       validateSandboxMarker({ sandbox: true, identifier: "490154203237518" }).issues,
     ).toContain("Sandbox records must use fictional identifiers");
+  });
+
+  it("validates evidence storage scope and company links", () => {
+    expect(
+      validateEvidencePath({
+        companyId: "company-a",
+        fitmentJobId: "job-a",
+        storageBucket: "fitment-evidence",
+        storagePath: "company-a/job-a/mounting-photo.jpg",
+      }).ok,
+    ).toBe(true);
+    expect(
+      validateEvidencePath({
+        companyId: "company-a",
+        fitmentJobId: "job-a",
+        storageBucket: "fitment-evidence",
+        storagePath: "company-a/job-b/mounting-photo.jpg",
+      }).issues,
+    ).toContain("Evidence path must be scoped to company and fitment job");
+    expect(
+      validateCompanyLink({
+        parentCompanyId: "company-a",
+        linkedCompanyId: "company-b",
+        relationship: "Support case device",
+      }).issues,
+    ).toContain("Support case device must belong to the same company");
   });
 });

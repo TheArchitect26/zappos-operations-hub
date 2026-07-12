@@ -12,7 +12,6 @@ import {
   Smartphone,
   TestTube2,
   Truck,
-  Upload,
   Wrench,
   Zap,
 } from "lucide-react";
@@ -22,6 +21,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState, ErrorState, LoadingState } from "@/components/operational-state";
 import { StatusBadge } from "@/components/ui/status-badge-detailed";
 import { useCompany } from "@/lib/company-context";
+import { useSession } from "@/lib/session";
 import {
   labelFitmentSource,
   rolloutTruthLabel,
@@ -214,6 +214,7 @@ function relativeTime(value: string | null | undefined) {
 
 function FieldDeploymentPage() {
   const { activeCompany, hasAnyRole, roles } = useCompany();
+  const { user } = useSession();
   const activeCompanyId = activeCompany?.id;
   const canRead = hasAnyRole(["admin", "fleet_manager", "dispatcher", "viewer"]);
   const canManage = hasAnyRole(["admin", "fleet_manager"]);
@@ -413,7 +414,7 @@ function FieldDeploymentPage() {
         technicianUserId: selectedJob.technician_user_id,
         supervisorUserId: selectedJob.supervisor_user_id,
       },
-      actor: { userId: "current-user", roles: roles as never },
+      actor: { userId: user?.id ?? "", roles: roles as never },
       nextStatus,
       reason:
         nextStatus === "blocked" || nextStatus === "rejected"
